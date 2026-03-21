@@ -4,7 +4,7 @@ date: "2024-09-05 10:00:00"
 author: "kazumich"
 category: software
 tags: [zed,editor,rust]
-eyecatch: "https://picsum.photos/seed/2024-09-05-zed-editor-first-look/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1643116774075-acc00caa9a7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwODgzNDh8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Zed エディタ ファーストインプレッション についてまとめます。
 

@@ -4,7 +4,7 @@ date: "2024-05-04 10:00:00"
 author: "kazumich"
 category: net
 tags: [remix,nextjs,compare]
-eyecatch: "https://picsum.photos/seed/2024-05-04-remix-vs-nextjs/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1675495277087-10598bf7bcd1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwOTM5Mjh8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Remix vs Next.js 2024年版比較 についてレポートします。
 

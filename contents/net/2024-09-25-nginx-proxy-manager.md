@@ -4,7 +4,7 @@ date: "2024-09-25 10:00:00"
 author: "kazumich"
 category: net
 tags: [nginx,proxy,server]
-eyecatch: "https://picsum.photos/seed/2024-09-25-nginx-proxy-manager/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1675627453084-505806a00406?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwOTM5MzN8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Nginx Proxy Manager で簡単リバプロ についてレポートします。
 

@@ -4,7 +4,7 @@ date: "2024-08-01 10:00:00"
 author: "kazumich"
 category: software
 tags: [linear,pm,tool]
-eyecatch: "https://picsum.photos/seed/2024-08-01-linear-project-management/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1509463536615-1ca163bcfb3f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwODgzNDN8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Linear でタスク管理を一新した についてまとめます。
 

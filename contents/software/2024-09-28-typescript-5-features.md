@@ -4,7 +4,7 @@ date: "2024-09-28 10:00:00"
 author: "kazumich"
 category: software
 tags: [typescript,programming,frontend]
-eyecatch: "https://picsum.photos/seed/2024-09-28-typescript-5-features/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1538579264549-711b48c0f528?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwODgzNTJ8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 TypeScript 5.x の新機能を整理する についてまとめます。
 

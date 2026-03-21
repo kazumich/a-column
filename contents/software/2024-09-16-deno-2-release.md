@@ -4,7 +4,7 @@ date: "2024-09-16 10:00:00"
 author: "kazumich"
 category: software
 tags: [deno,javascript,runtime]
-eyecatch: "https://picsum.photos/seed/2024-09-16-deno-2-release/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1617471346061-5d329ab9c574?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwODgzNTB8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Deno 2.0 リリース 何が変わった？ についてまとめます。
 

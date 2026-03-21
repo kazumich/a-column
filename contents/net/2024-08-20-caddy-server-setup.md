@@ -4,7 +4,7 @@ date: "2024-08-20 10:00:00"
 author: "kazumich"
 category: net
 tags: [caddy,server,https]
-eyecatch: "https://picsum.photos/seed/2024-08-20-caddy-server-setup/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1766777601235-d991ae24265b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwOTM5MzF8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Caddy サーバーで自動HTTPS設定 についてレポートします。
 

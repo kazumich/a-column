@@ -4,7 +4,7 @@ date: "2024-04-20 10:00:00"
 author: "kazumich"
 category: net
 tags: [nextjs,react,frontend]
-eyecatch: "https://picsum.photos/seed/2024-04-20-nextjs-app-router/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1637502877428-27e6553a8817?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwOTM5Mjd8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Next.js App Router 移行レポート についてレポートします。
 

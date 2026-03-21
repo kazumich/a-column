@@ -4,7 +4,7 @@ date: "2024-07-15 10:00:00"
 author: "kazumich"
 category: software
 tags: [raycast,mac,productivity]
-eyecatch: "https://picsum.photos/seed/2024-07-15-raycast-extensions/1200/630"
+eyecatch: "https://images.unsplash.com/photo-1760900577075-b6b7869871a4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDE2NjV8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQwODgzNDF8&ixlib=rb-4.1.0&q=80&w=1080"
 ---
 Raycast で Mac 作業を高速化 についてまとめます。
 
