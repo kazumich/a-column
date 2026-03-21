@@ -1,0 +1,33 @@
+{% if pagination.total_pages > 1 %}
+  <nav class="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+    <div>
+      {% if pagination.prev_url %}
+        <a href="{{ pagination.prev_url }}"
+           class="inline-flex items-center px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          ← 前のページ
+        </a>
+      {% else %}
+        <span class="inline-flex items-center px-4 py-2 text-sm text-gray-300 dark:text-gray-600 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded cursor-not-allowed">
+          ← 前のページ
+        </span>
+      {% endif %}
+    </div>
+
+    <span class="text-sm text-gray-400 dark:text-gray-500">
+      {{ pagination.current_page }} / {{ pagination.total_pages }} ページ
+    </span>
+
+    <div>
+      {% if pagination.next_url %}
+        <a href="{{ pagination.next_url }}"
+           class="inline-flex items-center px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          次のページ →
+        </a>
+      {% else %}
+        <span class="inline-flex items-center px-4 py-2 text-sm text-gray-300 dark:text-gray-600 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded cursor-not-allowed">
+          次のページ →
+        </span>
+      {% endif %}
+    </div>
+  </nav>
+{% endif %}

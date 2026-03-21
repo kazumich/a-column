@@ -1,0 +1,46 @@
+{% extends "layout.html.twig" %}
+
+{% block title %}{{ site.name }}{% endblock %}
+
+{% block content %}
+  {% for group in grouped %}
+    <section class="mb-10">
+      <h2 class="text-lg font-bold text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">
+        <a href="{{ group.category.url }}" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+          {{ group.category.label }}
+        </a>
+      </h2>
+
+      {% if group.entries is empty %}
+        <p class="text-sm text-gray-400 dark:text-gray-500">記事がありません。</p>
+      {% else %}
+        <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+          {% for entry in group.entries %}
+            <li class="py-2 flex items-baseline gap-3">
+              <time class="text-xs text-gray-400 dark:text-gray-500 shrink-0 w-20" datetime="{{ entry.datetime }}">
+                {{ entry.date }}
+              </time>
+              <a href="{{ entry.url }}"
+                 class="text-sm text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 min-w-0 truncate">
+                {{ entry.title }}
+              </a>
+              {% if entry.tags %}
+                <span class="flex gap-1 shrink-0">
+                  {% for tag in entry.tags %}
+                    <span class="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ tag }}</span>
+                  {% endfor %}
+                </span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="mt-3 text-right">
+          <a href="{{ group.category.url }}"
+             class="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+            {{ group.category.label }} の記事をすべて見る →
+          </a>
+        </div>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% endblock %}

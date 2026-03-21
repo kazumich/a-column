@@ -1,0 +1,10 @@
+{% extends "layout.html.twig" %}
+
+{% block title %}{{ site.name }}{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">最新の記事</h1>
+
+  {% include "modules/entry_summary.html.twig" %}
+  {% include "modules/pagination.html.twig" %}
+{% endblock %}

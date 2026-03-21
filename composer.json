@@ -1,0 +1,19 @@
+{
+    "name": "appleple/a-column",
+    "description": "A simple PHP CMS inspired by a-column Perl CMS",
+    "type": "project",
+    "require": {
+        "php": "^8.1",
+        "twig/twig": "^3.0",
+        "symfony/yaml": "^6.0|^7.0",
+        "erusev/parsedown": "^1.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "AColumn\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

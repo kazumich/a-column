@@ -1,0 +1,82 @@
+.genreBox {
+	margin-left: 20px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	margin-bottom: 5px;
+}
+.genreTitle {
+	border-bottom-width: 1px;
+	border-bottom-style: dashed;
+	border-bottom-color: #999999;
+	padding-left: 10px;
+	padding-bottom: 5px;
+	font-size: 14px;
+	font-weight: bold;
+	color: #333333;
+	border-top-width: 1px;
+	border-top-style: dashed;
+	border-top-color: #999999;
+	padding-top: 5px;
+}
+.cgiName {
+	margin-right: 30px;
+	margin-left: 30px;
+	text-align: right;
+	font-size: 12px;
+}
+.passBox {
+	text-align: right;
+	margin-right: 30px;
+	margin-left: 30px;
+}
+.colBox {
+	padding-top: 20px;
+	padding-right: 50px;
+	padding-left: 50px;
+
+}
+.colTitle {
+	border-bottom-width: 1px;
+	border-left-width: 5px;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	border-bottom-color: #999999;
+	border-left-color: #999999;
+	padding: 5px;
+
+}
+.colText {
+
+}
+.img {
+	padding: 10px;
+}
+
+.imgPosition {
+	text-align: center;
+}
+.fButton {
+	background-color: #FFA7A7;
+}
+.fInput {
+	background-color: #FFF3F3;
+}
+.fSelect {
+	background-color: #FFA7A7;
+}
+.fFile {
+	background-color: #FFA7A7;
+}
+.comment {
+	color: #CCCCCC;
+}
+
+.formTable {
+	font-size: 12px;
+	color: #333333;
+}
+
+.columnNavi {
+	font-size: 12px;
+	text-indent: 20px;
+}

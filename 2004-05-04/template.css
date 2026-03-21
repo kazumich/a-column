@@ -1,0 +1,107 @@
+a:link {
+        font-weight: bold;
+        text-decoration:none;
+        color: #000066 
+}
+
+a:visited {
+        font-weight: bold;
+        text-decoration:none;
+        color: #000099 
+}
+
+a:active {
+        font-weight: bold;
+        color:#660066 
+}
+
+a:hover {
+        font-weight: bold;
+        text-decoration:underline;
+        color:#DD0000 
+}
+
+/* <BODY>タグ */
+body {
+    margin:0px 0px 0px 0px;
+    background:#FFFFFF;    
+}
+
+/*a-News用の本文エリア */
+.newsMain {
+    float:left;
+    width:60%;
+    background:#EEE2E2;
+    border-right:1px dashed #666666;
+    margin-right:10px;
+    padding-bottom:10px;
+}
+
+.subContent {
+    float:right;
+    width:38%;
+}
+
+/* ページのタイトル */
+.pageTitle {
+	font-size: 24px;
+	font-weight: bold;
+	color: #FFFFFF;
+	padding: 20px;
+	background-color: #990000;
+	margin: 0px;
+	border-bottom-width: 10px;
+	border-bottom-style: solid;
+	border-bottom-color: #580000;
+}
+
+/* カレンダ用のDIV */
+.calBox {
+	padding-top: 20px;
+	padding-right: 50px;
+	padding-left: 50px;
+	text-align: center;
+}
+
+/* リンク集エリアのDIV */
+.linkBox {
+	padding-top: 10px;
+	text-align: center;
+}
+
+.updateDate {
+	text-align: right;
+	font-size: 12px;
+	color: #333333;
+	padding-right: 30px;
+	padding-top: 10px;
+}
+
+.updateDateFooter {
+	font-size: 12px;
+	color: #FFFFFF;
+	padding-right: 20px;
+	padding-left: 20px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	text-align: right;
+	padding-top: 10px;
+	background-color: #990000;
+}
+.columnBox {
+	padding-right: 20px;
+
+}
+.columnTitle {
+	font-size: 12px;
+	color: #333333;
+}
+.columnDate {
+	font-size: 12px;
+	color: #333333;
+}
+
+.kaiPage {
+	font-size: 12px;
+	padding-left: 20px;
+}

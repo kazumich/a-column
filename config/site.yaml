@@ -1,0 +1,11 @@
+site:
+  name: "a-column"
+  description: "20数年ぶりにアップデート"
+  url: "http://localhost:8080"
+  timezone: "Asia/Tokyo"
+  entries_per_page: 10
+  home_entries_per_category: 5
+  tag_cloud_min_count: 2
+  excerpt_length: 200
+  date_format: "Y/m/d"
+  theme: "default"

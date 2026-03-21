@@ -1,0 +1,20 @@
+{% extends "layout.html.twig" %}
+
+{% block title %}{{ entry.title }} — {{ site.name }}{% endblock %}
+
+{% block og_title %}{{ entry.title }}{% endblock %}
+{% block og_description %}{{ entry.excerpt }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block twitter_card %}{{ entry.eyecatch ? 'summary_large_image' : 'summary' }}{% endblock %}
+
+{% block og_image %}
+  {% if entry.eyecatch %}
+    <meta property="og:image" content="{{ entry.eyecatch }}">
+    <meta name="twitter:image" content="{{ entry.eyecatch }}">
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% include "modules/entry_detail.html.twig" %}
+{% endblock %}

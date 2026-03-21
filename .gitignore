@@ -1,0 +1,29 @@
+# 環境変数（APIキー等）
+.env
+
+# Composer依存
+/vendor/
+
+# npm依存
+/node_modules/
+
+# Twigキャッシュ
+/var/cache/twig/
+
+# タグインデックスキャッシュ（自動生成）
+/var/cache/tags/
+
+# ビルド済みCSS（ソースから生成）
+/public/assets/css/style.css
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Claude Code
+.claude/
+memory/

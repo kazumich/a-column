@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source "../../themes";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer components {
+  /* タグの共通スタイル */
+  .tag-item {
+    @apply px-2 py-0.5 rounded transition-colors
+           text-gray-600 dark:text-gray-300
+           bg-gray-100 dark:bg-gray-700
+           hover:bg-blue-100 dark:hover:bg-blue-900
+           hover:text-blue-700 dark:hover:text-blue-300;
+  }
+
+  /* タグクラウド：出現数をそのままサイズ番号に使用（上限 20） */
+  .tag-size-1, .tag-size-2                 { @apply text-xs; }
+  .tag-size-3, .tag-size-4                 { @apply text-xs font-medium; }
+  .tag-size-5, .tag-size-6                 { @apply text-sm; }
+  .tag-size-7, .tag-size-8                 { @apply text-sm font-medium; }
+  .tag-size-9, .tag-size-10                { @apply text-base; }
+  .tag-size-11, .tag-size-12               { @apply text-base font-medium; }
+  .tag-size-13, .tag-size-14, .tag-size-15 { @apply text-lg font-semibold; }
+  .tag-size-16, .tag-size-17, .tag-size-18 { @apply text-xl font-semibold; }
+  .tag-size-19, .tag-size-20               { @apply text-2xl font-bold; }
+}

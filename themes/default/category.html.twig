@@ -1,0 +1,15 @@
+{% extends "layout.html.twig" %}
+
+{% block title %}{{ category.label }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ category.label }}</h1>
+    {% if category.description %}
+      <p class="text-gray-500 dark:text-gray-400 mt-1">{{ category.description }}</p>
+    {% endif %}
+  </div>
+
+  {% include "modules/entry_summary.html.twig" %}
+  {% include "modules/pagination.html.twig" %}
+{% endblock %}

@@ -1,0 +1,5 @@
+# src/, content/, var/ への直接アクセスを遮断
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(src|content|var|vendor)/ - [F,L]
+</IfModule>

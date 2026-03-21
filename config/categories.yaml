@@ -1,0 +1,10 @@
+categories:
+  hardware:
+    label: "Hardware"
+    description: "ハードウェアに関する話題"
+  software:
+    label: "Software"
+    description: "ソフトウェアに関する話題"
+  net:
+    label: "Internet"
+    description: "インターネットに関する話題"
