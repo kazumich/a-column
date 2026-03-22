@@ -24,6 +24,10 @@
         </button>
       </form>
     {% endif %}
+    <a href="/admin/ai-generate"
+       class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition-colors flex items-center gap-1">
+      ✨ AI 生成
+    </a>
     <a href="/admin/entries/new"
        class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition-colors">
       ＋ 新規作成
@@ -64,14 +68,10 @@
             <div class="flex gap-1 justify-end">
               <a href="/admin/entries/{{ entry.category }}/{{ entry.slug }}/edit"
                  class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 transition-colors">編集</a>
-              <form method="post" action="/admin/entries/{{ entry.category }}/{{ entry.slug }}/duplicate">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 transition-colors">複製</button>
-              </form>
               <form method="post" action="/admin/entries/{{ entry.category }}/{{ entry.slug }}/toggle-publish">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 transition-colors">
-                  {{ entry.published ? '非公開に' : '公開する' }}
+                  {{ entry.published ? '非公開' : '公開する' }}
                 </button>
               </form>
               <form method="post" action="/admin/entries/{{ entry.category }}/{{ entry.slug }}/delete"

@@ -1,0 +1,275 @@
+{% extends "admin/layout.html.twig" %}
+{% block title %}AI 記事生成{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto"
+     x-data="aiGenerate('{{ csrf_token }}', '{{ categories|first ? categories|first.slug : '' }}')"
+     x-cloak>
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">AI 記事生成</h1>
+    <div class="flex items-center gap-3">
+      <button x-show="content !== ''" @click="clearDraft(); content = ''; filename = ''; theme = ''; instructions = ''"
+              class="text-sm text-gray-400 hover:text-red-500 transition-colors">
+        下書きをクリア
+      </button>
+      <a href="/admin/entries" class="text-sm text-gray-500 hover:text-gray-700">← 記事一覧へ</a>
+    </div>
+  </div>
+
+  {% if not claude_configured %}
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm px-4 py-3 rounded mb-6">
+      <strong>.env</strong> に <code>ANTHROPIC_API_KEY</code> を設定してください。
+    </div>
+  {% endif %}
+
+  {% if not github_configured %}
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm px-4 py-3 rounded mb-6">
+      GitHub push には <code>GITHUB_TOKEN</code>（contents:write）の設定が必要です。
+    </div>
+  {% endif %}
+
+  <!-- 生成フォーム -->
+  <div class="bg-white rounded-xl shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-700 mb-4">記事のテーマを入力</h2>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">テーマ・トピック <span class="text-red-500">*</span></label>
+        <input type="text" x-model="theme" placeholder="例: PHP 8.3 の新機能について"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               :disabled="loading">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">カテゴリ <span class="text-red-500">*</span></label>
+          <select x-model="category"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :disabled="loading">
+            {% for cat in categories %}
+              <option value="{{ cat.slug }}">{{ cat.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">ファイル名（後で編集可）</label>
+          <input type="text" x-model="filename" placeholder="自動生成されます"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 :disabled="loading">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">追加指示（任意）</label>
+        <textarea x-model="instructions" rows="2"
+                  placeholder="例: 初心者向けに丁寧に説明して / コード例を多く入れて"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :disabled="loading"></textarea>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button @click="generate()"
+                :disabled="loading || theme.trim() === ''"
+                class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors flex items-center gap-2">
+          <span x-show="!loading">✨ 生成する</span>
+          <span x-show="loading" class="flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"></path>
+            </svg>
+            生成中...（30〜60秒）
+          </span>
+        </button>
+
+        <span x-show="error" x-text="error" class="text-sm text-red-600"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生成結果 -->
+  <div x-show="content !== ''" class="bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-700">生成結果</h2>
+      <div class="flex items-center gap-2">
+        <button @click="showPreview = !showPreview"
+                class="text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-3 py-1">
+          <span x-text="showPreview ? '✏️ 編集' : '👁 プレビュー'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 編集エリア -->
+    <div x-show="!showPreview">
+      <textarea x-model="content" rows="30"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+    </div>
+
+    <!-- プレビューエリア（Markdownレンダリング） -->
+    <div x-show="showPreview"
+         class="prose prose-sm max-w-none border border-gray-200 rounded-lg p-6 bg-white overflow-auto max-h-[600px]"
+         x-html="renderMarkdown(content)">
+    </div>
+
+    <!-- ファイル名確認 + Push ボタン -->
+    <div class="mt-4 pt-4 border-t border-gray-200 flex items-center gap-4 flex-wrap">
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <span class="text-sm text-gray-500 shrink-0">push 先:</span>
+        <code class="text-sm bg-gray-100 px-2 py-1 rounded text-gray-700 truncate" x-text="category + '/' + filename"></code>
+      </div>
+
+      <div class="flex items-center gap-2">
+      <form method="post" action="/admin/ai-generate/push" @submit="submitPush($event)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="content" :value="content">
+        <input type="hidden" name="category" :value="category">
+        <input type="hidden" name="filename" :value="filename">
+        <button type="submit"
+                :disabled="pushing || filename.trim() === '' || content.trim() === ''"
+                class="bg-gray-800 hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors flex items-center gap-2">
+          <span x-show="!pushing" class="flex items-center gap-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            GitHub にプッシュ &amp; 同期
+          </span>
+          <span x-show="pushing" class="flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"></path>
+            </svg>
+            プッシュ中...
+          </span>
+        </button>
+      </form>
+      <button @click="clearDraft(); content = ''; filename = ''; theme = ''; instructions = ''"
+              class="text-sm text-gray-400 hover:text-red-500 border border-gray-300 hover:border-red-300 px-3 py-2 rounded-lg transition-colors">
+        クリア
+      </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const AI_DRAFT_KEY = 'ai_generate_draft';
+
+function aiGenerate(csrfToken, defaultCategory) {
+  return {
+    theme: '',
+    category: defaultCategory,
+    instructions: '',
+    filename: '',
+    content: '',
+    loading: false,
+    pushing: false,
+    error: '',
+    showPreview: false,
+
+    init() {
+      // push成功後のリダイレクト（?pushed=1）を検知してクリア
+      const params = new URLSearchParams(location.search);
+      if (params.get('pushed') === '1') {
+        this.clearDraft();
+        history.replaceState(null, '', '/admin/ai-generate');
+        return;
+      }
+
+      // localStorageから下書きを復元
+      try {
+        const saved = localStorage.getItem(AI_DRAFT_KEY);
+        if (saved) {
+          const d = JSON.parse(saved);
+          this.theme        = d.theme        || '';
+          this.category     = d.category     || defaultCategory;
+          this.instructions = d.instructions || '';
+          this.filename     = d.filename     || '';
+          this.content      = d.content      || '';
+        }
+      } catch(e) {}
+
+      // 変更を監視して自動保存
+      ['theme', 'category', 'instructions', 'filename', 'content'].forEach(key => {
+        this.$watch(key, () => this.saveDraft());
+      });
+    },
+
+    saveDraft() {
+      localStorage.setItem(AI_DRAFT_KEY, JSON.stringify({
+        theme: this.theme,
+        category: this.category,
+        instructions: this.instructions,
+        filename: this.filename,
+        content: this.content,
+      }));
+    },
+
+    clearDraft() {
+      localStorage.removeItem(AI_DRAFT_KEY);
+    },
+
+    async generate() {
+      this.error = '';
+      this.content = '';
+      this.loading = true;
+
+      try {
+        const form = new FormData();
+        form.append('csrf_token', csrfToken);
+        form.append('theme', this.theme);
+        form.append('category', this.category);
+        form.append('instructions', this.instructions);
+
+        const res = await fetch('/admin/ai-generate', { method: 'POST', body: form });
+        const data = await res.json();
+
+        if (!data.success) {
+          this.error = data.error || '生成に失敗しました';
+        } else {
+          this.content = data.content;
+          this.filename = this.suggestFilename(data.content);
+        }
+      } catch (e) {
+        this.error = 'ネットワークエラー: ' + e.message;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    suggestFilename(content) {
+      const titleMatch = content.match(/^title:\s*"(.+?)"/m);
+      const dateMatch  = content.match(/^date:\s*"(\d{4}-\d{2}-\d{2})/m);
+      const today = dateMatch ? dateMatch[1] : new Date().toISOString().slice(0, 10);
+
+      if (!titleMatch) return today + '-article.md';
+
+      // ASCII英数字のみ残してスラッグ化（PHPのファイル名バリデーションに合わせる）
+      const slug = titleMatch[1]
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 50) || 'article';
+
+      return today + '-' + slug + '.md';
+    },
+
+    renderMarkdown(content) {
+      // フロントマター（---...---）を除いた本文をHTMLに変換
+      const body = content.replace(/^---[\s\S]*?---\n+/, '');
+      return marked.parse(body);
+    },
+
+    submitPush(e) {
+      if (!this.filename.trim() || !this.content.trim()) {
+        e.preventDefault();
+        this.error = 'ファイル名と内容が必要です';
+        return;
+      }
+      this.pushing = true;
+    },
+  };
+}
+</script>
+{% endblock %}

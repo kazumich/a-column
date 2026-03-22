@@ -4,6 +4,9 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Alpine.js 初期化前の表示抑制 */
+[x-cloak] { display: none !important; }
+
 @layer components {
   /* タグの共通スタイル */
   .tag-item {

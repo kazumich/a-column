@@ -37,6 +37,31 @@
   }"
 >
 
+  {% if is_admin %}
+  <div class="bg-gray-100 border-b border-gray-300 text-sm">
+    <div class="max-w-3xl mx-auto px-4 py-1.5 flex items-center gap-2">
+      <a href="/admin/entries/new"
+         class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors">
+        エントリー作成
+      </a>
+      <a href="/admin/entries"
+         class="border border-gray-400 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1 rounded transition-colors">
+        管理ページ
+      </a>
+      <a href="/admin/ai-generate"
+         class="border border-gray-400 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1 rounded transition-colors">
+        ✨ AI 生成
+      </a>
+      <form method="post" action="/admin/logout" class="ml-auto">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="border border-gray-400 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1 rounded transition-colors">
+          ログアウト
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
   <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
     <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
 

@@ -73,6 +73,73 @@ class GitHubSyncRepository
         return $result;
     }
 
+    /**
+     * ファイルを GitHub リポジトリに push する。
+     *
+     * @return array{ success: bool, error?: string }
+     */
+    public function pushFile(string $category, string $filename, string $content, string $commitMessage): array
+    {
+        if (!$this->isConfigured()) {
+            return ['success' => false, 'error' => 'GitHub の設定がありません'];
+        }
+        if ($this->token === null) {
+            return ['success' => false, 'error' => 'GITHUB_TOKEN が設定されていません。.env に GITHUB_TOKEN を追加してください'];
+        }
+
+        $path = $category . '/' . $filename;
+
+        // 既存ファイルの SHA を取得（更新の場合に必要）
+        $existing = $this->apiGet($path);
+        $sha = $existing['sha'] ?? null;
+
+        $body = [
+            'message' => $commitMessage,
+            'content' => base64_encode($content),
+            'branch'  => $this->branch,
+        ];
+        if ($sha !== null) {
+            $body['sha'] = $sha;
+        }
+
+        $requestBody = json_encode($body);
+
+        $headers = [
+            'User-Agent: a-column-cms',
+            'Accept: application/vnd.github+json',
+            'Authorization: Bearer ' . $this->token,
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($requestBody),
+        ];
+
+        $url = sprintf(
+            'https://api.github.com/repos/%s/%s/contents/%s',
+            $this->owner,
+            $this->repo,
+            $path
+        );
+
+        $context = stream_context_create(['http' => [
+            'method'        => 'PUT',
+            'header'        => implode("\r\n", $headers),
+            'content'       => $requestBody,
+            'timeout'       => 30,
+            'ignore_errors' => true,
+        ]]);
+
+        $response = @file_get_contents($url, false, $context);
+        if ($response === false) {
+            return ['success' => false, 'error' => 'GitHub API への接続に失敗しました'];
+        }
+
+        $data = json_decode($response, true);
+        if (isset($data['content'])) {
+            return ['success' => true];
+        }
+
+        return ['success' => false, 'error' => $data['message'] ?? 'GitHub push に失敗しました'];
+    }
+
     // ----------------------------------------------------------------
     // private
     // ----------------------------------------------------------------

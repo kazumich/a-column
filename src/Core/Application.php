@@ -8,6 +8,7 @@ use AColumn\Repository\EntryRepository;
 use AColumn\Repository\CategoryRepository;
 use AColumn\Repository\TagIndexRepository;
 use AColumn\Repository\GitHubSyncRepository;
+use AColumn\Repository\ClaudeArticleRepository;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
@@ -22,6 +23,7 @@ class Application
     private TagIndexRepository $tagIndex;
     private AdminAuth $auth;
     private GitHubSyncRepository $githubSync;
+    private ClaudeArticleRepository $claudeArticle;
     private int $excerptLength;
 
     public function __construct(private readonly string $basePath)
@@ -43,8 +45,9 @@ class Application
         $this->entryRepo    = new EntryRepository($basePath . '/contents', $this->config);
         $this->categoryRepo = new CategoryRepository($this->config);
         $this->tagIndex     = new TagIndexRepository($basePath, $this->config);
-        $this->auth         = new AdminAuth($this->config);
-        $this->githubSync   = new GitHubSyncRepository($basePath);
+        $this->auth           = new AdminAuth($this->config);
+        $this->githubSync     = new GitHubSyncRepository($basePath);
+        $this->claudeArticle  = new ClaudeArticleRepository();
 
         $this->excerptLength = (int) $this->config->get('site.excerpt_length', 200);
 
@@ -82,6 +85,9 @@ class Application
         $this->router->add('GET',  '/admin/media',                                   fn($p) => $this->renderAdminMedia($p));
         $this->router->add('POST', '/admin/media/delete',                            fn($p) => $this->handleAdminMediaDelete($p));
         $this->router->add('POST', '/admin/sync',                                    fn($p) => $this->handleAdminSync($p));
+        $this->router->add('GET',  '/admin/ai-generate',                             fn($p) => $this->renderAdminAiGenerate($p));
+        $this->router->add('POST', '/admin/ai-generate',                             fn($p) => $this->handleAdminAiGenerate($p));
+        $this->router->add('POST', '/admin/ai-generate/push',                        fn($p) => $this->handleAdminAiPush($p));
 
         $this->router->add('GET', '/', function (array $params) use ($app): void {
             $app->renderHome($params);
@@ -656,6 +662,92 @@ class Application
         if (file_exists($marker)) {
             unlink($marker);
         }
+    }
+
+    private function renderAdminAiGenerate(array $params): void
+    {
+        $this->auth->requireLogin();
+        $categories = $this->categoryRepo->findAll();
+        echo $this->twig->render('admin/ai_generate.html.twig', array_merge($this->baseData(), [
+            'categories'        => array_map(fn($c) => $c->toArray(), $categories),
+            'claude_configured' => $this->claudeArticle->isConfigured(),
+            'github_configured' => $this->githubSync->isConfigured(),
+            'csrf_token'        => $this->auth->getCsrfToken(),
+        ]));
+    }
+
+    private function handleAdminAiGenerate(array $params): void
+    {
+        $this->auth->requireLogin();
+        set_time_limit(180); // Claude API は時間がかかるため延長
+        header('Content-Type: application/json');
+
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Invalid CSRF token']);
+            return;
+        }
+
+        $theme        = trim($_POST['theme'] ?? '');
+        $category     = trim($_POST['category'] ?? '');
+        $instructions = trim($_POST['instructions'] ?? '');
+        $author       = $this->config->get('admin.username', 'admin');
+        $date         = date('Y-m-d H:i:s');
+
+        if ($theme === '' || $category === '') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'テーマとカテゴリは必須です']);
+            return;
+        }
+
+        $result = $this->claudeArticle->generate($theme, $category, $instructions, $author, $date);
+        echo json_encode($result);
+    }
+
+    private function handleAdminAiPush(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+
+        $content  = $_POST['content'] ?? '';
+        $category = trim($_POST['category'] ?? '');
+        $filename = trim($_POST['filename'] ?? '');
+
+        if ($content === '' || $category === '' || $filename === '') {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => '必須パラメータが不足しています'];
+            $this->redirectTo('/admin/ai-generate');
+            return;
+        }
+
+        // ファイル名の安全チェック
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}-[\w\-]+\.md$/', $filename)) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'ファイル名の形式が正しくありません（YYYY-MM-DD-slug.md）'];
+            $this->redirectTo('/admin/ai-generate');
+            return;
+        }
+
+        $commitMsg = 'feat: add ' . $category . '/' . $filename . ' via AI generation';
+        $pushResult = $this->githubSync->pushFile($category, $filename, $content, $commitMsg);
+
+        if (!$pushResult['success']) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'GitHub push 失敗: ' . ($pushResult['error'] ?? '')];
+            $this->redirectTo('/admin/ai-generate');
+            return;
+        }
+
+        // push 後に同期してローカルにも反映
+        $syncResult = $this->githubSync->sync();
+        $this->invalidateTagIndex();
+
+        $_SESSION['flash'] = [
+            'type'    => 'success',
+            'message' => sprintf('GitHub に push し、同期しました（追加 %d件 / 更新 %d件）', $syncResult['added'], $syncResult['updated']),
+        ];
+        $this->redirectTo('/admin/ai-generate?pushed=1');
     }
 
     private function loadEnv(string $path): void
