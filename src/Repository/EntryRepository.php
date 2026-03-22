@@ -133,7 +133,68 @@ class EntryRepository
 
         usort($entries, fn(Entry $a, Entry $b) => $b->date <=> $a->date);
 
+        // 公開側は published === false の記事を除外
+        return array_values(array_filter($entries, fn(Entry $e) => $e->published === true));
+    }
+
+    /** 管理画面用：未公開も含めて全件返す */
+    public function findAllForAdmin(): array
+    {
+        $entries = [];
+        $categories = glob($this->basePath . '/*/') ?: [];
+        foreach ($categories as $catDir) {
+            $cat   = basename(rtrim($catDir, '/'));
+            $files = glob($catDir . '*.md') ?: [];
+            foreach ($files as $file) {
+                $entry = $this->parseFile($file, $cat);
+                if ($entry !== null) {
+                    $entries[] = $entry;
+                }
+            }
+        }
+        usort($entries, fn($a, $b) => $b->date <=> $a->date);
         return $entries;
+    }
+
+    /** 記事を保存（新規・更新共通） */
+    public function save(
+        string $category,
+        string $slug,
+        array $frontmatter,
+        string $body
+    ): void {
+        $yaml    = \Symfony\Component\Yaml\Yaml::dump($frontmatter, 2, 2);
+        $content = "---\n" . $yaml . "---\n\n" . ltrim($body);
+        $dir     = $this->basePath . '/' . $category;
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        file_put_contents($dir . '/' . $slug . '.md', $content);
+    }
+
+    /** 記事を削除 */
+    public function delete(string $category, string $slug): void
+    {
+        $path = $this->basePath . '/' . $category . '/' . $slug . '.md';
+        if (file_exists($path)) {
+            unlink($path);
+        }
+    }
+
+    /** frontmatter の raw 配列と body を返す（編集フォーム用） */
+    public function getRaw(string $category, string $slug): ?array
+    {
+        $path = $this->basePath . '/' . $category . '/' . $slug . '.md';
+        if (!file_exists($path)) {
+            return null;
+        }
+        $content = file_get_contents($path);
+        if (!preg_match('/^---\s*\n(.*?)\n---\s*\n(.*)/s', $content, $m)) {
+            return null;
+        }
+        $frontmatter = \Symfony\Component\Yaml\Yaml::parse($m[1]) ?? [];
+        $body        = ltrim($m[2]);
+        return ['frontmatter' => $frontmatter, 'body' => $body];
     }
 
     private function parseFile(string $path, string $category): ?Entry
@@ -163,8 +224,9 @@ class EntryRepository
             $date = new \DateTimeImmutable();
         }
 
-        $html = $this->parsedown->text($body);
-        $slug = basename($path, '.md');
+        $html      = $this->parsedown->text($body);
+        $slug      = basename($path, '.md');
+        $published = isset($frontMatter['published']) ? (bool)$frontMatter['published'] : true;
 
         return new Entry(
             slug:        $slug,
@@ -176,6 +238,7 @@ class EntryRepository
             htmlBody:    $html,
             eyecatch:    $eyecatch,
             description: $description,
+            published:   $published,
         );
     }
 

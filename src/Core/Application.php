@@ -19,6 +19,7 @@ class Application
     private EntryRepository $entryRepo;
     private CategoryRepository $categoryRepo;
     private TagIndexRepository $tagIndex;
+    private AdminAuth $auth;
     private int $excerptLength;
 
     public function __construct(private readonly string $basePath)
@@ -37,6 +38,7 @@ class Application
         $this->entryRepo    = new EntryRepository($basePath . '/contents', $this->config);
         $this->categoryRepo = new CategoryRepository($this->config);
         $this->tagIndex     = new TagIndexRepository($basePath, $this->config);
+        $this->auth         = new AdminAuth($this->config);
 
         $this->excerptLength = (int) $this->config->get('site.excerpt_length', 200);
 
@@ -56,6 +58,23 @@ class Application
     private function registerRoutes(): void
     {
         $app = $this;
+
+        // --- admin routes ---
+        $this->router->add('GET',  '/admin',                                        fn($p) => $this->redirectTo('/admin/entries'));
+        $this->router->add('GET',  '/admin/login',                                  fn($p) => $this->renderAdminLogin($p));
+        $this->router->add('POST', '/admin/login',                                  fn($p) => $this->handleAdminLogin($p));
+        $this->router->add('GET',  '/admin/logout',                                 fn($p) => $this->handleAdminLogout($p));
+        $this->router->add('GET',  '/admin/entries',                                fn($p) => $this->renderAdminEntries($p));
+        $this->router->add('GET',  '/admin/entries/new',                            fn($p) => $this->renderAdminEntryForm($p));
+        $this->router->add('POST', '/admin/entries/new',                            fn($p) => $this->handleAdminEntryCreate($p));
+        $this->router->add('GET',  '/admin/entries/{category}/{slug}/edit',         fn($p) => $this->renderAdminEntryEdit($p));
+        $this->router->add('POST', '/admin/entries/{category}/{slug}/edit',         fn($p) => $this->handleAdminEntryUpdate($p));
+        $this->router->add('POST', '/admin/entries/{category}/{slug}/delete',       fn($p) => $this->handleAdminEntryDelete($p));
+        $this->router->add('POST', '/admin/entries/{category}/{slug}/duplicate',    fn($p) => $this->handleAdminEntryDuplicate($p));
+        $this->router->add('POST', '/admin/entries/{category}/{slug}/toggle-publish', fn($p) => $this->handleAdminTogglePublish($p));
+        $this->router->add('POST', '/admin/upload/image',                             fn($p) => $this->handleAdminImageUpload($p));
+        $this->router->add('GET',  '/admin/media',                                   fn($p) => $this->renderAdminMedia($p));
+        $this->router->add('POST', '/admin/media/delete',                            fn($p) => $this->handleAdminMediaDelete($p));
 
         $this->router->add('GET', '/', function (array $params) use ($app): void {
             $app->renderHome($params);
@@ -231,6 +250,8 @@ class Application
                 $this->categoryRepo->findAll()
             ),
             'tag_cloud'  => $tagCloud,
+            'is_admin'   => $this->auth->isLoggedIn(),
+            'csrf_token' => $this->auth->getCsrfToken(),
         ];
     }
 
@@ -249,5 +270,345 @@ class Application
     public function getRequest(): Request
     {
         return $this->request;
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin handlers
+    // -------------------------------------------------------------------------
+
+    private function redirectTo(string $url): void
+    {
+        header('Location: ' . $url);
+        exit;
+    }
+
+    private function renderAdminLogin(array $params): void
+    {
+        echo $this->twig->render('admin/login.html.twig', array_merge($this->baseData(), [
+            'error' => $_SESSION['login_error'] ?? null,
+        ]));
+        unset($_SESSION['login_error']);
+    }
+
+    private function handleAdminLogin(array $params): void
+    {
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        if ($this->auth->login($username, $password)) {
+            $this->redirectTo('/admin/entries');
+        } else {
+            $_SESSION['login_error'] = 'ユーザー名またはパスワードが違います';
+            $this->redirectTo('/admin/login');
+        }
+    }
+
+    private function handleAdminLogout(array $params): void
+    {
+        $this->auth->logout();
+        $this->redirectTo('/admin/login');
+    }
+
+    private function renderAdminEntries(array $params): void
+    {
+        $this->auth->requireLogin();
+        $entries = $this->entryRepo->findAllForAdmin();
+        echo $this->twig->render('admin/entries.html.twig', array_merge($this->baseData(), [
+            'entries' => array_map(fn($e) => $e->toArray($this->excerptLength), $entries),
+        ]));
+    }
+
+    private function renderAdminEntryForm(array $params): void
+    {
+        $this->auth->requireLogin();
+        $categories = $this->categoryRepo->findAll();
+        echo $this->twig->render('admin/entry_form.html.twig', array_merge($this->baseData(), [
+            'categories'  => array_map(fn($c) => $c->toArray(), $categories),
+            'entry'       => null,
+            'frontmatter' => [
+                'title'       => '',
+                'date'        => date('Y-m-d H:i:s'),
+                'author'      => $this->config->get('admin.username', 'admin'),
+                'tags'        => [],
+                'eyecatch'    => '',
+                'description' => '',
+                'published'   => true,
+            ],
+            'body'   => '',
+            'action' => '/admin/entries/new',
+            'is_new' => true,
+        ]));
+    }
+
+    private function handleAdminEntryCreate(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+
+        $category = trim($_POST['category'] ?? '');
+        $slug     = $this->buildSlug($_POST['slug'] ?? '', $_POST['title'] ?? '', $_POST['date'] ?? '');
+        $fm       = $this->buildFrontmatter($_POST);
+        $body     = $_POST['body'] ?? '';
+
+        $this->entryRepo->save($category, $slug, $fm, $body);
+        $this->invalidateTagIndex();
+        $this->redirectTo('/admin/entries');
+    }
+
+    private function renderAdminEntryEdit(array $params): void
+    {
+        $this->auth->requireLogin();
+        $raw = $this->entryRepo->getRaw($params['category'], $params['slug']);
+        if ($raw === null) {
+            http_response_code(404);
+            echo 'Not found';
+            return;
+        }
+        $categories = $this->categoryRepo->findAll();
+        $fm         = $raw['frontmatter'];
+        echo $this->twig->render('admin/entry_form.html.twig', array_merge($this->baseData(), [
+            'categories'       => array_map(fn($c) => $c->toArray(), $categories),
+            'frontmatter'      => $fm,
+            'body'             => $raw['body'],
+            'action'           => '/admin/entries/' . $params['category'] . '/' . $params['slug'] . '/edit',
+            'is_new'           => false,
+            'current_category' => $params['category'],
+            'current_slug'     => $params['slug'],
+        ]));
+    }
+
+    private function handleAdminEntryUpdate(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+
+        $oldCategory = $params['category'];
+        $oldSlug     = $params['slug'];
+        $newCategory = trim($_POST['category'] ?? $oldCategory);
+        $newSlug     = trim($_POST['slug'] ?? $oldSlug);
+        $fm          = $this->buildFrontmatter($_POST);
+        $body        = $_POST['body'] ?? '';
+
+        // カテゴリ/スラッグが変わった場合は旧ファイルを削除
+        if ($oldCategory !== $newCategory || $oldSlug !== $newSlug) {
+            $this->entryRepo->delete($oldCategory, $oldSlug);
+        }
+        $this->entryRepo->save($newCategory, $newSlug, $fm, $body);
+        $this->invalidateTagIndex();
+        $this->redirectTo('/admin/entries');
+    }
+
+    private function handleAdminEntryDelete(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+        $this->entryRepo->delete($params['category'], $params['slug']);
+        $this->invalidateTagIndex();
+        $this->redirectTo('/admin/entries');
+    }
+
+    private function handleAdminEntryDuplicate(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+        $raw = $this->entryRepo->getRaw($params['category'], $params['slug']);
+        if ($raw === null) {
+            $this->redirectTo('/admin/entries');
+            return;
+        }
+
+        $fm          = $raw['frontmatter'];
+        $fm['title'] = ($fm['title'] ?? '') . ' (copy)';
+        $newSlug     = date('Y-m-d') . '-copy-' . $params['slug'];
+        $this->entryRepo->save($params['category'], $newSlug, $fm, $raw['body']);
+        $this->invalidateTagIndex();
+        $this->redirectTo('/admin/entries/' . $params['category'] . '/' . $newSlug . '/edit');
+    }
+
+    private function handleAdminTogglePublish(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+        $raw = $this->entryRepo->getRaw($params['category'], $params['slug']);
+        if ($raw === null) {
+            $this->redirectTo('/admin/entries');
+            return;
+        }
+
+        $fm              = $raw['frontmatter'];
+        $current         = isset($fm['published']) ? (bool)$fm['published'] : true;
+        $fm['published'] = !$current;
+        $this->entryRepo->save($params['category'], $params['slug'], $fm, $raw['body']);
+        $this->invalidateTagIndex();
+
+        $referer = $_SERVER['HTTP_REFERER'] ?? '/admin/entries';
+        $this->redirectTo($referer);
+    }
+
+    private function renderAdminMedia(array $params): void
+    {
+        $this->auth->requireLogin();
+
+        $mediaDir = $this->basePath . '/public/media';
+        $months   = [];
+
+        foreach (glob($mediaDir . '/*/') ?: [] as $monthDir) {
+            $month = basename($monthDir);
+            $files = [];
+            foreach (glob($monthDir . '*.{jpg,jpeg,png,gif,webp,svg}', GLOB_BRACE) ?: [] as $path) {
+                $filename = basename($path);
+                $files[]  = [
+                    'filename' => $filename,
+                    'url'      => '/media/' . $month . '/' . $filename,
+                    'path'     => 'media/' . $month . '/' . $filename,
+                    'size'     => $this->formatBytes(filesize($path)),
+                    'mtime'    => filemtime($path),
+                ];
+            }
+            usort($files, fn($a, $b) => $b['mtime'] - $a['mtime']);
+            if (!empty($files)) {
+                $months[] = ['label' => $month, 'files' => $files];
+            }
+        }
+        usort($months, fn($a, $b) => strcmp($b['label'], $a['label']));
+
+        echo $this->twig->render('admin/media.html.twig', array_merge($this->baseData(), [
+            'months'     => $months,
+            'csrf_token' => $this->auth->getCsrfToken(),
+        ]));
+    }
+
+    private function handleAdminMediaDelete(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+
+        $rel  = ltrim($_POST['path'] ?? '', '/');
+        // media/YYYYMM/filename.ext 形式のみ許可
+        if (!preg_match('#^media/\d{6}/[\w\-]+\.\w+$#', $rel)) {
+            $this->redirectTo('/admin/media');
+            return;
+        }
+
+        $path = $this->basePath . '/public/' . $rel;
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        $this->redirectTo('/admin/media');
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes < 1024) return $bytes . ' B';
+        if ($bytes < 1048576) return round($bytes / 1024, 1) . ' KB';
+        return round($bytes / 1048576, 1) . ' MB';
+    }
+
+    private function handleAdminImageUpload(array $params): void
+    {
+        header('Content-Type: application/json');
+
+        if (!$this->auth->isLoggedIn()) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized']);
+            return;
+        }
+
+        $file = $_FILES['image'] ?? null;
+        if ($file === null || $file['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(['error' => 'アップロードに失敗しました']);
+            return;
+        }
+
+        // 画像ファイルのみ許可
+        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+        $mime    = mime_content_type($file['tmp_name']);
+        if (!in_array($mime, $allowed, true)) {
+            http_response_code(400);
+            echo json_encode(['error' => '画像ファイルのみアップロードできます']);
+            return;
+        }
+
+        $ext      = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $subDir   = date('Ym');        // 例: 202603
+        $filename = date('His') . '-' . bin2hex(random_bytes(4)) . '.' . strtolower($ext);
+        $dir      = $this->basePath . '/public/media/' . $subDir;
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $filename)) {
+            http_response_code(500);
+            echo json_encode(['error' => '保存に失敗しました']);
+            return;
+        }
+
+        echo json_encode(['data' => ['filePath' => '/media/' . $subDir . '/' . $filename]]);
+    }
+
+    private function buildSlug(string $slug, string $title, string $date): string
+    {
+        $slug = trim($slug);
+        if ($slug !== '') {
+            return $slug;
+        }
+        // タイトルからスラッグ生成
+        $slug = mb_strtolower($title);
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+        $slug = trim($slug, '-');
+        if ($slug === '' || $slug === '-') {
+            $slug = 'entry';
+        }
+        $datePrefix = date('Y-m-d', strtotime($date) ?: time());
+        return $datePrefix . '-' . $slug;
+    }
+
+    private function buildFrontmatter(array $post): array
+    {
+        $tags = array_values(array_filter(array_map('trim', explode(',', $post['tags'] ?? ''))));
+        return [
+            'title'       => trim($post['title'] ?? ''),
+            'date'        => trim($post['date'] ?? date('Y-m-d H:i:s')),
+            'author'      => trim($post['author'] ?? ''),
+            'category'    => trim($post['category'] ?? ''),
+            'tags'        => $tags,
+            'eyecatch'    => trim($post['eyecatch'] ?? ''),
+            'description' => trim($post['description'] ?? ''),
+            'published'   => isset($post['published']) && $post['published'] === '1',
+        ];
+    }
+
+    private function invalidateTagIndex(): void
+    {
+        $marker = $this->basePath . '/var/cache/tags/.last_built';
+        if (file_exists($marker)) {
+            unlink($marker);
+        }
     }
 }

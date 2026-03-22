@@ -1,4 +1,25 @@
 <article>
+  {% if is_admin %}
+    <div class="mb-6 flex gap-1">
+      <a href="/admin/entries/{{ entry.category }}/{{ entry.slug }}/edit"
+         class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">編集</a>
+      <form method="post" action="/admin/entries/{{ entry.category }}/{{ entry.slug }}/duplicate">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">複製</button>
+      </form>
+      <form method="post" action="/admin/entries/{{ entry.category }}/{{ entry.slug }}/delete"
+            onsubmit="return confirm('削除しますか？')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">削除</button>
+      </form>
+      <form method="post" action="/admin/entries/{{ entry.category }}/{{ entry.slug }}/toggle-publish">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          {{ entry.published ? '非公開に' : '公開する' }}
+        </button>
+      </form>
+    </div>
+  {% endif %}
   {% if entry.eyecatch %}
     <div class="w-full aspect-video rounded-lg mb-8 overflow-hidden">
       <img src="{{ entry.eyecatch }}" alt="{{ entry.title }}"

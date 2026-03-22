@@ -9,3 +9,7 @@ site:
   excerpt_length: 200
   date_format: "Y/m/d"
   theme: "default"
+
+admin:
+  username: "admin"
+  password: "pass"

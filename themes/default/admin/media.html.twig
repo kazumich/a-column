@@ -1,0 +1,74 @@
+{% extends "admin/layout.html.twig" %}
+{% block title %}メディア{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">メディア</h1>
+  <p class="text-sm text-gray-400">public/media/ 以下のファイル</p>
+</div>
+
+{% if months is empty %}
+  <div class="bg-white rounded-xl shadow p-12 text-center text-gray-400">
+    アップロードされた画像がありません
+  </div>
+{% else %}
+  {% for month in months %}
+    <section class="mb-8">
+      <h2 class="text-sm font-semibold text-gray-500 mb-3">
+        {{ month.label|slice(0,4) }}/{{ month.label|slice(4,2) }}
+        <span class="font-normal text-gray-400">（{{ month.files|length }}件）</span>
+      </h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        {% for file in month.files %}
+          <div class="bg-white rounded-lg shadow overflow-hidden group relative">
+            <div class="aspect-square overflow-hidden bg-gray-50">
+              <img src="{{ file.url }}" alt="{{ file.filename }}"
+                   class="w-full h-full object-cover">
+            </div>
+            <div class="p-2">
+              <p class="text-xs text-gray-500 truncate" title="{{ file.filename }}">{{ file.filename }}</p>
+              <p class="text-xs text-gray-400">{{ file.size }}</p>
+            </div>
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+              <a href="{{ file.url }}" target="_blank"
+                 class="text-xs bg-white text-gray-800 px-3 py-1 rounded hover:bg-gray-100 transition-colors">
+                開く
+              </a>
+              <button type="button"
+                      onclick="copyMarkdown(this, '![{{ file.filename }}]({{ file.url }})')"
+                      class="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors">
+                コピー
+              </button>
+              <form method="post" action="/admin/media/delete"
+                    onsubmit="return confirm('「{{ file.filename }}」を削除しますか？\n記事で使用中の場合は画像が表示されなくなります。')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="path" value="{{ file.path }}">
+                <button type="submit"
+                        class="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors">
+                  削除
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyMarkdown(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent
+    btn.textContent = 'コピー済!'
+    btn.disabled = true
+    setTimeout(() => {
+      btn.textContent = orig
+      btn.disabled = false
+    }, 1500)
+  })
+}
+</script>
+{% endblock %}

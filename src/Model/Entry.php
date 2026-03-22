@@ -16,6 +16,7 @@ class Entry
         public readonly string $htmlBody,
         public readonly string $eyecatch = '',
         public readonly string $description = '',
+        public readonly bool $published = true,
     ) {}
 
     /**
@@ -51,6 +52,7 @@ class Entry
             'eyecatch'    => $this->eyecatch,
             'description' => $this->description,
             'url'         => '/' . $this->category . '/' . $this->slug . '.html',
+            'published'   => $this->published,
         ];
     }
 }

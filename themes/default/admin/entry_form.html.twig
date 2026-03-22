@@ -1,0 +1,183 @@
+{% extends "admin/layout.html.twig" %}
+{% block title %}{{ is_new ? '新規作成' : '編集' }}{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="/admin/entries" class="text-sm text-gray-500 hover:text-gray-700">← 記事一覧</a>
+  <h1 class="text-2xl font-bold text-gray-800">{{ is_new ? '新規作成' : '記事を編集' }}</h1>
+</div>
+
+<form method="post" action="{{ action }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {# メイン：タイトル・本文 #}
+    <div class="lg:col-span-2 space-y-4">
+      <div class="bg-white rounded-xl shadow p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-1">タイトル <span class="text-red-500">*</span></label>
+        <input type="text" name="title" value="{{ frontmatter.title }}" required autofocus
+               class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+
+      <div class="bg-white rounded-xl shadow p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-1">本文（Markdown）</label>
+        {# data-editor="markdown" は将来 Tiptap に差し替える際の目印 #}
+        <textarea id="body-editor" name="body" data-editor="markdown"
+                  class="w-full">{{ body }}</textarea>
+      </div>
+    </div>
+
+    {# サイドバー：メタ情報 #}
+    <div class="space-y-4">
+      {# 公開設定 #}
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-sm font-medium text-gray-700 mb-3">公開設定</p>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="hidden" name="published" value="0">
+          <input type="checkbox" name="published" value="1"
+                 {% if frontmatter.published is not defined or frontmatter.published %}checked{% endif %}
+                 class="w-4 h-4 rounded text-blue-600">
+          <span class="text-sm text-gray-700">公開する</span>
+        </label>
+      </div>
+
+      {# カテゴリ・スラッグ #}
+      <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">カテゴリ <span class="text-red-500">*</span></label>
+          <select name="category" required
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% for cat in categories %}
+              <option value="{{ cat.slug }}"
+                {% if (current_category is defined and current_category == cat.slug) or (frontmatter.category is defined and frontmatter.category == cat.slug) %}selected{% endif %}>
+                {{ cat.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">スラッグ</label>
+          <input type="text" name="slug" value="{{ is_new ? '' : current_slug }}"
+                 placeholder="空欄の場合はタイトルから自動生成"
+                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          {% if not is_new %}
+            <p class="text-xs text-gray-400 mt-1">変更すると URL が変わります</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# 日付・著者 #}
+      <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">公開日時</label>
+          <input type="text" name="date" value="{{ frontmatter.date }}"
+                 placeholder="2024-01-01 10:00:00"
+                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">著者</label>
+          <input type="text" name="author" value="{{ frontmatter.author }}"
+                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      {# タグ #}
+      <div class="bg-white rounded-xl shadow p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-1">タグ</label>
+        <input type="text" name="tags"
+               value="{{ frontmatter.tags is iterable ? frontmatter.tags|join(', ') : frontmatter.tags }}"
+               placeholder="php, mac, apple"
+               class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p class="text-xs text-gray-400 mt-1">カンマ区切りで入力</p>
+      </div>
+
+      {# アイキャッチ・概要 #}
+      <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">アイキャッチ画像 URL</label>
+          <input type="url" name="eyecatch" value="{{ frontmatter.eyecatch }}"
+                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          {% if frontmatter.eyecatch %}
+            <img src="{{ frontmatter.eyecatch }}" alt="preview"
+                 class="mt-2 w-full aspect-video object-cover rounded">
+          {% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">概要（description）</label>
+          <textarea name="description" rows="3"
+                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y">{{ frontmatter.description }}</textarea>
+          <p class="text-xs text-gray-400 mt-1">OGP・抜粋に使用。空の場合は本文から自動生成</p>
+        </div>
+      </div>
+
+      {# 保存ボタン #}
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded text-sm transition-colors">
+        {{ is_new ? '作成する' : '保存する' }}
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+  <script>
+    const editor = new EasyMDE({
+      element: document.getElementById('body-editor'),
+      spellChecker: false,
+      autosave: {
+        enabled: true,
+        uniqueId: 'a-column-body-{{ current_slug ?? "new" }}',
+        delay: 3000,
+      },
+      toolbar: [
+        'bold', 'italic', 'strikethrough', '|',
+        'heading-1', 'heading-2', 'heading-3', '|',
+        'unordered-list', 'ordered-list', '|',
+        'link',
+        {
+          name: 'upload-image',
+          action: uploadImage,
+          className: 'fa fa-picture-o',
+          title: '画像をアップロード',
+        },
+        '|',
+        'quote', 'code', 'table', '|',
+        'preview', 'side-by-side', 'fullscreen', '|',
+        'guide',
+      ],
+      minHeight: '480px',
+      promptURLs: true,
+    });
+
+    function uploadImage(editor) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/gif,image/webp';
+      input.onchange = function () {
+        const file = input.files[0];
+        if (!file) return;
+        const altText = file.name.replace(/\.[^.]+$/, ''); // 拡張子を除いたファイル名
+        const formData = new FormData();
+        formData.append('image', file);
+        fetch('/admin/upload/image', { method: 'POST', body: formData })
+          .then(r => r.json())
+          .then(data => {
+            if (data.error) {
+              alert(data.error);
+            } else {
+              editor.codemirror.replaceSelection(`![${altText}](${data.data.filePath})`);
+            }
+          })
+          .catch(() => alert('アップロードに失敗しました'));
+      };
+      input.click();
+    }
+  </script>
+{% endblock %}
