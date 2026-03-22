@@ -4,22 +4,11 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.2",
     "@tailwindcss/typography": "^0.5.19",
-    "esbuild": "^0.25.0",
     "tailwindcss": "^4.2.2"
   },
-  "dependencies": {
-    "@tiptap/core": "^3.0.0",
-    "@tiptap/markdown": "^3.0.0",
-    "@tiptap/pm": "^3.0.0",
-    "@tiptap/starter-kit": "^3.0.0",
-    "@tiptap/suggestion": "^3.20.4"
-  },
   "scripts": {
-    "build": "npm run build:css && npm run build:js",
+    "build": "npm run build:css",
     "build:css": "npx @tailwindcss/cli -i ./src/css/input.css -o ./public/assets/css/style.css --minify",
-    "build:js": "npx esbuild src/js/editor.js --bundle --outfile=public/assets/js/editor.js --minify",
-    "watch": "npm run watch:css",
-    "watch:css": "npx @tailwindcss/cli -i ./src/css/input.css -o ./public/assets/css/style.css --watch",
-    "watch:js": "npx esbuild src/js/editor.js --bundle --outfile=public/assets/js/editor.js --watch"
+    "watch": "npx @tailwindcss/cli -i ./src/css/input.css -o ./public/assets/css/style.css --watch"
   }
 }
