@@ -7,6 +7,7 @@ namespace AColumn\Core;
 use AColumn\Repository\EntryRepository;
 use AColumn\Repository\CategoryRepository;
 use AColumn\Repository\TagIndexRepository;
+use AColumn\Repository\GitHubSyncRepository;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
@@ -20,6 +21,7 @@ class Application
     private CategoryRepository $categoryRepo;
     private TagIndexRepository $tagIndex;
     private AdminAuth $auth;
+    private GitHubSyncRepository $githubSync;
     private int $excerptLength;
 
     public function __construct(private readonly string $basePath)
@@ -33,12 +35,16 @@ class Application
         $tz = $this->config->get('site.timezone', 'Asia/Tokyo');
         date_default_timezone_set($tz);
 
+        // .env 読み込み（GitHub 同期などに使用）
+        $this->loadEnv($basePath . '/.env');
+
         $this->request      = new Request();
         $this->router       = new Router();
         $this->entryRepo    = new EntryRepository($basePath . '/contents', $this->config);
         $this->categoryRepo = new CategoryRepository($this->config);
         $this->tagIndex     = new TagIndexRepository($basePath, $this->config);
         $this->auth         = new AdminAuth($this->config);
+        $this->githubSync   = new GitHubSyncRepository($basePath);
 
         $this->excerptLength = (int) $this->config->get('site.excerpt_length', 200);
 
@@ -75,6 +81,7 @@ class Application
         $this->router->add('POST', '/admin/upload/image',                             fn($p) => $this->handleAdminImageUpload($p));
         $this->router->add('GET',  '/admin/media',                                   fn($p) => $this->renderAdminMedia($p));
         $this->router->add('POST', '/admin/media/delete',                            fn($p) => $this->handleAdminMediaDelete($p));
+        $this->router->add('POST', '/admin/sync',                                    fn($p) => $this->handleAdminSync($p));
 
         $this->router->add('GET', '/', function (array $params) use ($app): void {
             $app->renderHome($params);
@@ -312,8 +319,15 @@ class Application
     {
         $this->auth->requireLogin();
         $entries = $this->entryRepo->findAllForAdmin();
+
+        $flash = $_SESSION['flash'] ?? null;
+        unset($_SESSION['flash']);
+
         echo $this->twig->render('admin/entries.html.twig', array_merge($this->baseData(), [
-            'entries' => array_map(fn($e) => $e->toArray($this->excerptLength), $entries),
+            'entries'           => array_map(fn($e) => $e->toArray($this->excerptLength), $entries),
+            'flash'             => $flash,
+            'github_configured' => $this->githubSync->isConfigured(),
+            'csrf_token'        => $this->auth->getCsrfToken(),
         ]));
     }
 
@@ -604,11 +618,58 @@ class Application
         ];
     }
 
+    private function handleAdminSync(array $params): void
+    {
+        $this->auth->requireLogin();
+        if (!$this->auth->validateCsrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            echo 'Invalid CSRF token';
+            return;
+        }
+
+        if (!$this->githubSync->isConfigured()) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'GitHub の設定がありません（.env を確認してください）'];
+            $this->redirectTo('/admin/entries');
+            return;
+        }
+
+        $result = $this->githubSync->sync();
+        $this->invalidateTagIndex();
+
+        $msg = sprintf(
+            '同期完了: 追加 %d件 / 更新 %d件 / 削除 %d件',
+            $result['added'],
+            $result['updated'],
+            $result['deleted']
+        );
+        if (!empty($result['errors'])) {
+            $msg .= sprintf(' / エラー %d件', count($result['errors']));
+        }
+
+        $_SESSION['flash'] = ['type' => 'success', 'message' => $msg];
+        $this->redirectTo('/admin/entries');
+    }
+
     private function invalidateTagIndex(): void
     {
         $marker = $this->basePath . '/var/cache/tags/.last_built';
         if (file_exists($marker)) {
             unlink($marker);
+        }
+    }
+
+    private function loadEnv(string $path): void
+    {
+        if (!file_exists($path)) return;
+        foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+            if (str_starts_with(trim($line), '#')) continue;
+            if (!str_contains($line, '=')) continue;
+            [$key, $value] = explode('=', $line, 2);
+            $key   = trim($key);
+            $value = trim($value);
+            if ($key !== '' && !isset($_ENV[$key])) {
+                $_ENV[$key] = $value;
+            }
         }
     }
 }
