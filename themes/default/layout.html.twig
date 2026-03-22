@@ -22,6 +22,7 @@
     }
   </script>
   <link rel="stylesheet" href="/assets/css/style.css">
+  {% block head %}{% endblock %}
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 </head>
 <body
@@ -38,23 +39,29 @@
 >
 
   {% if is_admin %}
-  <div class="bg-gray-100 border-b border-gray-300 text-sm">
-    <div class="max-w-3xl mx-auto px-4 py-1.5 flex items-center gap-2">
+  <div class="bg-gray-100 dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 text-sm overflow-x-auto">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2 min-w-max">
       <a href="/admin/entries/new"
-         class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors">
-        エントリー作成
-      </a>
-      <a href="/admin/entries"
-         class="border border-gray-400 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1 rounded transition-colors">
-        管理ページ
+         class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors whitespace-nowrap">
+        新規作成
       </a>
       <a href="/admin/ai-generate"
-         class="border border-gray-400 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1 rounded transition-colors">
+         class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors whitespace-nowrap">
         ✨ AI 生成
       </a>
+      <a href="/admin/media"
+         class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors whitespace-nowrap">
+        メディア
+      </a>
+      <form method="post" action="/admin/sync">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors whitespace-nowrap">
+          GitHub 同期
+        </button>
+      </form>
       <form method="post" action="/admin/logout" class="ml-auto">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button class="border border-gray-400 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1 rounded transition-colors">
+        <button class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors whitespace-nowrap">
           ログアウト
         </button>
       </form>
@@ -156,5 +163,6 @@
     <p>{{ site.name }} — Powered by a-column PHP</p>
   </footer>
 
+  {% block scripts %}{% endblock %}
 </body>
 </html>

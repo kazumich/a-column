@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 @source "../../themes";
+@source inline("hidden sm:flex sm:block sm:hidden max-sm:hidden sm:flex");
 
 @custom-variant dark (&:where(.dark, .dark *));
 

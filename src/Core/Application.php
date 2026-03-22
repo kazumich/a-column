@@ -69,7 +69,7 @@ class Application
         $app = $this;
 
         // --- admin routes ---
-        $this->router->add('GET',  '/admin',                                        fn($p) => $this->redirectTo('/admin/entries'));
+        $this->router->add('GET',  '/admin',                                        fn($p) => $this->redirectTo('/'));
         $this->router->add('GET',  '/admin/login',                                  fn($p) => $this->renderAdminLogin($p));
         $this->router->add('POST', '/admin/login',                                  fn($p) => $this->handleAdminLogin($p));
         $this->router->add('GET',  '/admin/logout',                                 fn($p) => $this->handleAdminLogout($p));
@@ -308,7 +308,7 @@ class Application
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
         if ($this->auth->login($username, $password)) {
-            $this->redirectTo('/admin/entries');
+            $this->redirectTo('/');
         } else {
             $_SESSION['login_error'] = 'ユーザー名またはパスワードが違います';
             $this->redirectTo('/admin/login');
@@ -375,7 +375,7 @@ class Application
 
         $this->entryRepo->save($category, $slug, $fm, $body);
         $this->invalidateTagIndex();
-        $this->redirectTo('/admin/entries');
+        $this->redirectTo('/');
     }
 
     private function renderAdminEntryEdit(array $params): void
@@ -422,7 +422,7 @@ class Application
         }
         $this->entryRepo->save($newCategory, $newSlug, $fm, $body);
         $this->invalidateTagIndex();
-        $this->redirectTo('/admin/entries');
+        $this->redirectTo('/');
     }
 
     private function handleAdminEntryDelete(array $params): void
@@ -435,7 +435,7 @@ class Application
         }
         $this->entryRepo->delete($params['category'], $params['slug']);
         $this->invalidateTagIndex();
-        $this->redirectTo('/admin/entries');
+        $this->redirectTo('/');
     }
 
     private function handleAdminEntryDuplicate(array $params): void
@@ -448,7 +448,7 @@ class Application
         }
         $raw = $this->entryRepo->getRaw($params['category'], $params['slug']);
         if ($raw === null) {
-            $this->redirectTo('/admin/entries');
+            $this->redirectTo('/');
             return;
         }
 
@@ -470,7 +470,7 @@ class Application
         }
         $raw = $this->entryRepo->getRaw($params['category'], $params['slug']);
         if ($raw === null) {
-            $this->redirectTo('/admin/entries');
+            $this->redirectTo('/');
             return;
         }
 
@@ -635,7 +635,7 @@ class Application
 
         if (!$this->githubSync->isConfigured()) {
             $_SESSION['flash'] = ['type' => 'error', 'message' => 'GitHub の設定がありません（.env を確認してください）'];
-            $this->redirectTo('/admin/entries');
+            $this->redirectTo('/');
             return;
         }
 
@@ -653,7 +653,7 @@ class Application
         }
 
         $_SESSION['flash'] = ['type' => 'success', 'message' => $msg];
-        $this->redirectTo('/admin/entries');
+        $this->redirectTo('/');
     }
 
     private function invalidateTagIndex(): void

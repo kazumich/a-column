@@ -1,11 +1,11 @@
 {% if tag_cloud %}
 <div class="mt-6">
   <h2 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">タグ</h2>
-  <div class="flex flex-wrap gap-1.5">
+  <div class="flex flex-wrap gap-1.5 overflow-hidden">
     {% for tag in tag_cloud %}
       <a href="{{ tag.url }}"
          class="tag-item tag-size-{{ tag.size }}"
-         title="{{ tag.count }}件">{{ tag.name }}</a>
+         title="{{ tag.count }}件">#{{ tag.name }}</a>
     {% endfor %}
   </div>
 </div>
