@@ -1,5 +1,12 @@
-# src/, content/, var/ への直接アクセスを遮断
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteRule ^(src|content|var|vendor)/ - [F,L]
-</IfModule>
+RewriteEngine On
+RewriteBase /
+
+# 機密ディレクトリへの直接アクセスを禁止
+RewriteRule ^(src|themes|contents|vendor)/ - [F,L]
+
+# public/ 内の実ファイル（assets, uploads, media 等）はそのまま返す
+RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
+RewriteRule ^(.+)$ public/$1 [L,QSA]
+
+# それ以外はすべて public/index.php へ
+RewriteRule ^ public/index.php [L,QSA]
